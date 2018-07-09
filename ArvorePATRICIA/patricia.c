@@ -3,126 +3,89 @@
 #include <string.h>
 #include "patricia.h"
 
-TDir* criarDirecionamento(int avanca, char compara){
-    TDir* novoDir = malloc(sizeof(TDir));
-    if(novoDir != NULL){
-        novoDir->avanca = avanca;
-        novoDir->compara = compara;
-    }
+static TNodo* criarDadosPatricia(char caractere,int incrementador,char palavra[20],int linha){
+	TNodo* aloca = malloc(sizeof(TNodo));
+	if(aloca != NULL){
+		aloca->caractere = caractere;
+		aloca->incrementador = incrementador;
+		strcpy(aloca->palavra,palavra);
+		aloca->linha = linha;
+		aloca->esquerda = NULL;
+		aloca->direita = NULL;
+	}
 
-    return novoDir;
+	return aloca;
 }
 
-TNoP* criarNo(char palavra[]){
-    TNoP* novo = malloc(sizeof(TNoP));
-    if(novo != NULL){
-        novo->palavra = palavra;
-        novo->filhoEsq = NULL;
-        novo->filhoDir = NULL;
-    }
-}
-
-TNoP* criarRaiz(int avanca, char compara, char palavra1[], char palavra2[]){
-    TNoP* novo = malloc(sizeof(TNoP));
-    if(novo != NULL){
-        TDir* dd = criarDirecionamento(avanca, compara);
-        novo->direcoes = dd;
-        novo->palavra = NULL;
-        if(palavra1[avanca] == compara){
-            novo->filhoEsq = criarNo(palavra1);
-            novo->filhoDir = criarNo(palavra2);
-        }else {
-            novo->filhoEsq = criarNo(palavra2);
-            novo->filhoDir = criarNo(palavra1);
-        }
-    }
-
-    return novo;
-}
-
-TDadosPat* criarDadosPatricia(){
-    TDadosPat* dadPat = malloc(sizeof(TDadosPat));
-    if(dadPat != NULL){
-        dadosPat->ocupacao = 0;
-        dadPat->Raiz = NULL;
-    }
-
-    return dadPat;
-}
-
-int retornaIndiceDiferente(char palavra1[], char palavra2[]){
+static int comparaPalavra(char palavra1[20], char palavra2[20]){
     int contador = 0;
-    while(palavra1[contador] == palavra2[contador]){
+    while(contador < 20){
+        if(palavra1[contador]!=palavra2[contador]){
+            return contador;
+        }
         contador = contador + 1;
     }
 
     return contador;
 }
 
-char menorChar(char palavra1[], char palavra2[], int indice){
+static TNodo* inserePatricia(TNodo* raiz, char inserido[20], int linha, int incrementador){
+    int comparador = strcmp(raiz->palavra,inserido);
+    if(raiz == NULL){
+        raiz = criarDadosPatricia('%',-1,inserido,linha);
+        return raiz;
+    }else{
+        if((strcmp(raiz->palavra,"%%%") != 0) && (comparador != 0)){
+            int posicaoDiferente = comparaPalavra(raiz->palavra,inserido);
+            int diferencaPosicao = posicaoDiferente - incrementador;
 
-    char resposta;
-
-    if(palavra1[indice] < palavra2[indice]){
-        resposta = palavra1[indice];
-    }else {
-        resposta = palavra2[indice];
-    }
-
-    return resposta;
-}
-
-void InsereVazia(TPatricia* arvore, char palavra1[], char palavra2[]){
-    int ind;
-    char comp;
-
-    TDadosPat* dadoArvore = arvore->dadosPat;
-    ind = retornaIndiceDiferente(palavra1,palavra2);
-    ind = ind + 1;
-    comp = menorChar(palavra1,palavra2,ind);
-    dadoArvore->Raiz = criarRaiz(ind,comp,palavra1,palavra2);
-    dadoArvore->ocupacao = 2;
-
-}
-
-TNoP* BuscaPat(TNoP* raiz, char palavra[], int apontador){
-
-	 if(raiz == NULL){
-    	 return raiz;
-     }else{
-    	if(raiz->direcoes != NULL){
-    		TDir* dir = raiz->direcoes;
-            apontador = apontador + dir->avanca;
-            if(palavra[apontador] <= dir->compara){
-                return BuscaPat(raiz->filhoEsq,palavra,apontador);
+            if(comparador < 0){
+                raiz->esquerda = criarDadosPatricia('%',-1,raiz->palavra,raiz->linha);
+                raiz->direita = criarDadosPatricia('%',-1,inserido,linha);
+                raiz->linha = 0;
+                raiz->caractere = raiz->palavra[posicaoDiferente];
+                raiz->incrementador = diferencaPosicao;
+                strcpy(raiz->palavra,"%%%");
+                return raiz;
             }else{
-                return BuscaPat(raiz->filhoDir,palavra,apontador);
+                raiz->direita = criarDadosPatricia('%',-1,raiz->palavra,raiz->linha);
+                raiz->esquerda = criarDadosPatricia('%',-1,inserido,linha);
+                raiz->linha = 0;
+                raiz->caractere = inserido[posicaoDiferente];
+                raiz->incrementador = diferencaPosicao;
+                strcpy(raiz->palavra,"%%%");
+                return raiz;
             }
-    	}else{
-    		char* word = raiz->palavra;
-    		if(strcmp(word,palavra) == 0){
-    			return raiz;
-    		}else{
-    			return NULL;
-    		}
-    	}
-     }
+        }else{
+            if((inserido[incrementador + raiz->incrementador] < raiz->palavra[incrementador + raiz->incrementador]) || (inserido[incrementador + raiz->incrementador] == raiz->palavra[incrementador + raiz->incrementador])){
+                raiz = inserePatricia(raiz->esquerda,inserido,linha,incrementador+raiz->incrementador);
+                return raiz;
+            }else{
+                raiz = inserePatricia(raiz->direita,inserido,linha,incrementador+raiz->incrementador);
+                return raiz;
+            }
+        }
+    }
+    return raiz;
 }
 
-void InsereNormal(TNoP* raiz, char palavra[]){
-
-
+static void imprimePatricia(TNodo* raiz, FILE* arquivo){
+    if(raiz != NULL){
+        imprimePatricia(raiz->esquerda,arquivo);
+        if((raiz->esquerda == NULL) &&(raiz->direita == NULL)){
+            fprintf(arquivo,"%s -- linha %d\n",raiz->palavra,raiz->linha);
+        }
+        imprimePatricia(raiz->direita,arquivo);
+    }
 }
 
 TPatricia* criarPatricia(){
-    TPatricia* novaArvore = malloc(sizeof(TPatricia));
-    if(novaArvore != NULL){
-        novaArvore->dadosPat = criarDadosPatricia();
-        novaArvore->inserirVazia = InsereVazia;
-        novaArvore->inserirNormal = InsereNormal;
-        novaArvore->remover = RemovePat;
-        novaArvore->buscar = BuscaPat;
+    TPatricia* arvore = malloc(sizeof(TPatricia));
+    if(arvore!=NULL){
+        arvore->dadosPatricia = NULL;
+        arvore->inserirPatricia = inserePatricia;
+        arvore->imprimirPatricia = imprimePatricia;
     }
 
-    return novaArvore;
+    return arvore;
 }

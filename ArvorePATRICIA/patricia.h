@@ -2,39 +2,26 @@
 #define PATRICIA_H_
 
 typedef struct Patricia TPatricia;
+typedef struct Nodo TNodo;
 
-//Métodos do Tipo TPatricia
-typedef void (*TinserirPatVazia)(TPatricia *arvore,void* elem, void elem);
-typedef void (*TinserirPatNormal)(TNoP* raiz, void* elem);
-typedef void* (*TremoverPat)(TNoP *raiz, void *elem);
-typedef void* (*TbuscarPat)(TNoP *raiz, void* valor, int apontador);
+typedef TNodo* (*TInserePatricia)(TNodo* raiz,char palavra[20],int linha,int incrementador);
+typedef void (*TImprimePatricia)(TNodo* trie, FILE* arquivo);
 
-typedef struct Dir{
-    int avanca;
-    char compara;
-}TDir;
-
-typedef struct NoP{
-	TDir* direcoes;
-    void* palavra;
-    TNoP* filhoEsq;
-    TNoP* filhoDir;
-} TNoP;
-
-//Dados do Tipo TPatricia
-typedef struct dadosPat{
-	int ocupacao;
-	TNoP* Raiz;
-} TDadosPat;
-
-struct Patricia{
-	void *dadosPat; //Dados encapsulados
-	TinserirPatVazia inserirVazia;//Tipo Inserir com arvore vazia
-	TinserirPatNormal inserirNormal; //insere com arvore com um elemento
-	TremoverPat remover;//Tipo Remover
-	TbuscarPat buscar;//Tipo Buscar
+struct Nodo{
+    char caractere;
+    int incrementador;
+    char palavra[20];
+    int linha;
+    TNodo* esquerda;
+    TNodo* direita;
 };
 
-//Funcao construtor do TPatricia
-TPatricia *criarPatricia();
-#endif /* PATRICIA_H_ */
+struct Patricia{
+	TNodo* dadosPatricia;
+	TInserePatricia inserirPatricia;
+	TImprimePatricia imprimirPatricia;
+};
+
+TPatricia* criarPatricia();
+
+#endif // PATRICIA_H_
